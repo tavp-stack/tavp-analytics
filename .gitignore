@@ -1,0 +1,11 @@
+/vendor/
+node_modules/
+composer.lock
+.DS_Store
+Thumbs.db
+*.log
+storage/cache/
+storage/compiled/
+.env
+.env.*
+!.env.example
