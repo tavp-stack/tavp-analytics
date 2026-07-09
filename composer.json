@@ -1,38 +1,47 @@
-{
-    "name": "tavp/analytics",
-    "description": "Advanced analytics, fraud detection, and user behavior tracking for TAVP",
-    "type": "library",
-    "license": "proprietary",
-    "minimum-stability": "dev",
-    "autoload": {
-        "psr-4": {
-            "Tavp\\Analytics\\": "src/"
-        },
-        "files": [
-            "src/Support/helpers.php"
-        ]
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tavp\\Analytics\\Tests\\": "tests/"
-        }
-    },
-    "require": {
-        "php": ">=8.2",
-        "tavp/core": "*"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^11.0"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Tavp\\Analytics\\AnalyticsServiceProvider"
-            ]
-        }
-    },
-    "config": {
-        "sort-packages": true
-    },
-    "keywords": ["analytics", "fraud-detection", "tracking", "tavp"]
+﻿{
+    "name":  "tavp/analytics",
+    "description":  "Advanced analytics, fraud detection, and user behavior tracking for TAVP",
+    "type":  "library",
+    "license":  "proprietary",
+    "minimum-stability":  "dev",
+    "autoload":  {
+                     "psr-4":  {
+                                   "Tavp\\Analytics\\":  "src/"
+                               },
+                     "files":  [
+                                   "src/Support/helpers.php"
+                               ]
+                 },
+    "autoload-dev":  {
+                         "psr-4":  {
+                                       "Tavp\\Analytics\\Tests\\":  "tests/"
+                                   }
+                     },
+    "require":  {
+                    "php":  "\u003e=8.2",
+                    "tavp/core":  "*"
+                },
+    "require-dev":  {
+                        "phpunit/phpunit":  "^11.0"
+                    },
+    "extra":  {
+                  "laravel":  {
+                                  "providers":  [
+                                                    "Tavp\\Analytics\\AnalyticsServiceProvider"
+                                                ]
+                              }
+              },
+    "config":  {
+                   "sort-packages":  true
+               },
+    "keywords":  [
+                     "analytics",
+                     "fraud-detection",
+                     "tracking",
+                     "tavp"
+                 ],
+    "support":  {
+                    "issues":  "https://github.com/tavp-stack/tavp-analytics/issues",
+                    "source":  "https://github.com/tavp-stack/tavp-analytics"
+                }
 }
