@@ -2,6 +2,14 @@
 
 Advanced analytics, fraud detection, and user behavior tracking for the TAVP stack.
 
+**Version: 1.0.0**
+
+## Requirements
+
+- PHP 8.3+
+- Phalcon 5.16+
+- tavp-core
+
 ## Features
 
 ### Core Analytics
@@ -119,4 +127,4 @@ Each rule returns a score 0.0-1.0. The composite score determines action:
 
 ## License
 
-Proprietary — TAVP Stack
+MIT
