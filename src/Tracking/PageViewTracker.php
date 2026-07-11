@@ -114,10 +114,13 @@ class PageViewTracker
     private function resolveSession(string $sessionId, array $data, string $ip, string $ua, array $parsed, array $location): ?Session
     {
         // Look for existing session
-        $session = Session::query()
-            ->where('session_id', '=', $sessionId)
-            ->andWhere('last_activity_at', '>=', date('Y-m-d H:i:s', strtotime("-{$this->config['session_duration']} minutes")))
-            ->findFirst();
+        $session = Session::findFirst([
+            'conditions' => 'session_id = :session_id AND last_activity_at >= :cutoff',
+            'bind' => [
+                'session_id' => $sessionId,
+                'cutoff' => date('Y-m-d H:i:s', strtotime("-{$this->config['session_duration']} minutes")),
+            ],
+        ]);
 
         if ($session !== null) {
             return $session;
