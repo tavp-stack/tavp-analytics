@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Tavp\Analytics\Tracking;
 
 use Tavp\Analytics\Models\PageVisit;
-use Tavp\Analytics\Models\Session;
-use Tavp\Analytics\Support\Geolocator;
-use Tavp\Analytics\Support\UserAgentParser;
 
 /**
  * Tracks page views and sessions across all platforms.
@@ -38,17 +35,16 @@ class PageViewTracker
 
         $ip = $data['ip_address'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
         $ua = $data['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '');
-        $parsed = UserAgentParser::parse($ua);
+        $parsed = \Tavp\Analytics\Support\UserAgentParser::parse($ua);
 
         // Geolocation
         $location = ['country' => null, 'city' => null, 'region' => null, 'lat' => null, 'lon' => null, 'timezone' => null, 'isp' => null];
         if ($this->config['geolocation_enabled'] && !empty($ip)) {
-            $location = Geolocator::locate($ip);
+            $location = \Tavp\Analytics\Support\Geolocator::locate($ip);
         }
 
         // Session management
         $sessionId = $data['session_id'] ?? $this->generateSessionId();
-        $session = $this->resolveSession($sessionId, $data, $ip, $ua, $parsed, $location);
 
         // Create page visit
         $visit = new PageVisit();
@@ -69,34 +65,23 @@ class PageViewTracker
             'browser' => $parsed['browser'],
             'os' => $parsed['os'],
             'platform' => $data['platform'] ?? $parsed['platform'],
-            'screen_resolution' => $data['screen_resolution'] ?? UserAgentParser::parseResolution($ua, $_SERVER),
+            'screen_resolution' => $data['viewport'] ?? null,
             'session_id' => $sessionId,
             'user_id' => $data['user_id'] ?? null,
-            'duration' => $data['duration'] ?? 0,
-            'is_bounce' => ($data['duration'] ?? 0) < 30 && ($data['page_views_in_session'] ?? 1) <= 1,
-            'is_bot' => $parsed['is_bot'],
-            'bot_name' => $parsed['bot_name'],
-            'is_authenticated' => !empty($data['user_id']),
-            'metadata' => $data['metadata'] ?? null,
-            'visited_at' => $data['visited_at'] ?? date('Y-m-d H:i:s'),
         ]);
 
         $visit->save();
 
-        // Update session
-        if ($session !== null) {
-            $this->updateSession($session, $data);
-        }
+        // Track session using raw SQL
+        $this->trackSession($sessionId, $data, $ip, $ua, $parsed, $location);
 
         return $visit;
     }
 
     private function shouldTrack(array $data): bool
     {
-        $path = $data['path'] ?? '/';
-        $ip = $data['ip_address'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
-
         // Exclude paths
+        $path = $data['path'] ?? '/';
         foreach ($this->config['exclude_paths'] as $pattern) {
             if (fnmatch($pattern, $path)) {
                 return false;
@@ -104,6 +89,7 @@ class PageViewTracker
         }
 
         // Exclude IPs
+        $ip = $data['ip_address'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
         if (in_array($ip, $this->config['exclude_ips'], true)) {
             return false;
         }
@@ -111,10 +97,53 @@ class PageViewTracker
         return true;
     }
 
-    private function resolveSession(string $sessionId, array $data, string $ip, string $ua, array $parsed, array $location): ?Session
+    private function trackSession(string $sessionId, array $data, string $ip, string $ua, array $parsed, array $location): void
     {
-        // Simplified: skip session tracking for now
-        return null;
+        try {
+            $db = app('db');
+            $now = date('Y-m-d H:i:s');
+            $cutoff = date('Y-m-d H:i:s', strtotime("-{$this->config['session_duration']} minutes"));
+
+            // Check if session exists
+            $result = $db->query(
+                "SELECT id FROM analytics_sessions WHERE session_id = :sid AND last_activity_at >= :cutoff",
+                ['sid' => $sessionId, 'cutoff' => $cutoff]
+            );
+            $rows = $result->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (!empty($rows)) {
+                // Update existing session
+                $db->update('analytics_sessions', [
+                    'page_views' => new \Phalcon\Db\RawValue('page_views + 1'),
+                    'last_activity_at' => $now,
+                    'last_page' => $data['path'] ?? '/',
+                ], ['id' => $rows[0]['id']]);
+            } else {
+                // Create new session using raw SQL
+                $db->execute(
+                    "INSERT INTO analytics_sessions (session_id, user_id, ip_address, user_agent, country, city, device, browser, os, platform, screen_resolution, first_page, last_page, page_views, duration_seconds, bounced, created_at, last_activity_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, ?, ?)",
+                    [
+                        $sessionId,
+                        $data['user_id'] ?? null,
+                        $ip,
+                        $ua,
+                        $location['country'],
+                        $location['city'],
+                        $parsed['device'],
+                        $parsed['browser'],
+                        $parsed['os'],
+                        $parsed['platform'] ?? null,
+                        $data['viewport'] ?? null,
+                        $data['path'] ?? '/',
+                        $data['path'] ?? '/',
+                        $now,
+                        $now,
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log("Session tracking error: " . $e->getMessage());
+        }
     }
 
     private function generateSessionId(): string
