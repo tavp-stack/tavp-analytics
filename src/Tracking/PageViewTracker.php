@@ -113,61 +113,8 @@ class PageViewTracker
 
     private function resolveSession(string $sessionId, array $data, string $ip, string $ua, array $parsed, array $location): ?Session
     {
-        // Look for existing session
-        $session = Session::findFirst([
-            'conditions' => 'session_id = :session_id AND last_activity_at >= :cutoff',
-            'bind' => [
-                'session_id' => $sessionId,
-                'cutoff' => date('Y-m-d H:i:s', strtotime("-{$this->config['session_duration']} minutes")),
-            ],
-        ]);
-
-        if ($session !== null) {
-            return $session;
-        }
-
-        // Create new session
-        $session = new Session();
-        $session->fill([
-            'session_id' => $sessionId,
-            'user_id' => $data['user_id'] ?? null,
-            'ip_address' => $ip,
-            'user_agent' => $ua,
-            'device' => $parsed['device'],
-            'browser' => $parsed['browser'],
-            'os' => $parsed['os'],
-            'platform' => $data['platform'] ?? $parsed['platform'],
-            'country' => $location['country'],
-            'city' => $location['city'],
-            'referrer' => $data['referrer'] ?? null,
-            'landing_page' => $data['path'] ?? '/',
-            'page_views' => 1,
-            'duration' => 0,
-            'is_bounce' => true,
-            'is_bot' => $parsed['is_bot'],
-            'started_at' => date('Y-m-d H:i:s'),
-            'last_activity_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        $session->save();
-
-        return $session;
-    }
-
-    private function updateSession(Session $session, array $data): void
-    {
-        $pageViews = ($session->page_views ?? 0) + 1;
-        $duration = $data['duration'] ?? 0;
-
-        $session->fill([
-            'exit_page' => $data['path'] ?? '/',
-            'page_views' => $pageViews,
-            'duration' => $duration,
-            'is_bounce' => $pageViews <= 1 && $duration < 30,
-            'last_activity_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        $session->save();
+        // Simplified: skip session tracking for now
+        return null;
     }
 
     private function generateSessionId(): string
