@@ -115,8 +115,8 @@ class TrackingController
             'session_duration' => 30,
             'exclude_paths' => ['api/*', '_debugbar/*'],
             'exclude_ips' => ['127.0.0.1', '::1'],
-            'geolocation_enabled' => false,
-            'fraud_detection_enabled' => false,
+            'geolocation_enabled' => true,
+            'fraud_detection_enabled' => true,
             'track_events' => true,
             'fraud' => [
                 'bot_detection' => true,
